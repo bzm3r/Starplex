@@ -231,6 +231,6 @@ fn render_brush_transform(sb: &mut SceneBuilder, i: usize) {
     );
 }
 
-fn around_center(xform: Affine, center: Point) -> Affine {
-    Affine::translate(center.to_vec2()) * xform * Affine::translate(-center.to_vec2())
+fn around_center(transform: Affine, center: Point) -> Affine {
+    Affine::translate(center.to_vec2()) * transform * Affine::translate(-center.to_vec2())
 }
