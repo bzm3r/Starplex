@@ -8,14 +8,13 @@ use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
 
 pub struct VelloPlugin;
 
-#[derive(Component)]
-// In the future, this will probably connect to the bevy heirarchy with an Affine component
-pub struct VelloFragment(pub SceneFragment);
-
+// Vello `Scene`s contain the `Encoding` that will be sent to and rendered by the GPU
 #[derive(Component)]
 pub struct VelloScene(Scene, Handle<Image>);
 
+// Extracts a VelloScene for Rendering to the GPU
 impl ExtractComponent for VelloScene {
+    // TODO: query for all the VelloFragments
     type Query = (&'static VelloFragment, &'static Canvas);
 
     type Filter = ();
