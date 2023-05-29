@@ -1,4 +1,6 @@
-use crate::canvas::Canvas;
+pub mod fragment;
+pub mod scene;
+
 use bevy::prelude::*;
 use bevy::render::{
     extract_component::ExtractComponent, render_asset::RenderAssets, renderer::RenderDevice,
@@ -8,28 +10,7 @@ use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
 
 pub struct VelloPlugin;
 
-// Vello `Scene`s contain the `Encoding` that will be sent to and rendered by the GPU
-#[derive(Component)]
-pub struct VelloScene(Scene, Handle<Image>);
 
-// Extracts a VelloScene for Rendering to the GPU
-impl ExtractComponent for VelloScene {
-    // TODO: query for all the VelloFragments
-    type Query = (&'static VelloFragment, &'static Canvas);
-
-    type Filter = ();
-
-    type Out = Self;
-
-    fn extract_component(
-        (fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
-    ) -> Option<Self> {
-        let mut scene = Scene::default();
-        let mut builder = SceneBuilder::for_scene(&mut scene);
-        builder.append(&fragment.0, None);
-        Some(Self(scene, target.0.clone()))
-    }
-}
 
 #[derive(Resource)]
 pub struct VelloRenderer(Renderer);
