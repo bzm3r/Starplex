@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "starplex_game",
+    "starplex_lib",
+    "tools/ci",
+    "vevy_bello",
+]
+default-members = ["starplex_game", "starplex_lib", "vevy_bello"]
+
+# Enable max optimizations for dependencies, but not for our code:
+[profile.dev.package."*"]
+opt-level = 3

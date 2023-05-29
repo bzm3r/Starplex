@@ -1,8 +1,23 @@
-use vello::peniko::kurbo::Affine;
+use bevy::asset::Handle;
+use bevy::ecs::component::Component;
+use bevy::ecs::query::{ReadOnlyWorldQuery, WorldQuery};
+use bevy::render::texture::Image;
 
-// Vello `SceneFragments` are stitched together into a Vello `Scene` (possibly in a multithreaded fashion)
+use vello::peniko::kurbo::Affine;
+use vello::{SceneBuilder, SceneFragment};
+
+use crate::target::VelloTarget;
+
+// Vello [`SceneFragment`]s are stitched together into a Vello [`Scene`](vello::Scene)
 #[derive(Component)]
 pub struct VelloFragment {
-    fragment: pub SceneFragment,
-    transform: pub Affine,
-};
+    pub scene_id: u64,
+    pub scene_fragment: SceneFragment,
+    pub transform: Affine,
+}
+
+#[derive(WorldQuery)]
+pub struct VelloFragmentQuery {
+    pub fragment: &'static VelloFragment,
+    pub target: &'static VelloTarget,
+}

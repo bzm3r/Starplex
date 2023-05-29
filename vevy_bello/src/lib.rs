@@ -1,5 +1,6 @@
 pub mod fragment;
 pub mod scene;
+pub mod target;
 
 use bevy::prelude::*;
 use bevy::render::{
