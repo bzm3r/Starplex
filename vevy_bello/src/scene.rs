@@ -5,19 +5,21 @@ use bevy::render::texture::Image;
 
 use vello::{Scene, SceneBuilder};
 
-use crate::{fragment::VelloFragmentQuery, target::VelloTarget};
+use crate::{fragment::{VelloFragmentQuery, VelloFragment}, target::VelloTarget};
 
 // Vello `Scene`s contain the `Encoding` that will be sent to and rendered by the GPU
 #[derive(Component)]
 pub struct VelloScene {
-    id: u64,
     scene: Scene,
+    fragments: Vec<VelloFragment>,
     target: VelloTarget,
 }
 
+pub struct RenderScene()
+
 impl VelloScene {
-    pub fn new(id: u64, scene: Scene, target: Handle<Image>) -> Self {
-        Self { id, scene, target }
+    pub fn new(target: Handle<Image>) -> Self {
+        Self { scene: Scene::default(), fragments: Vec::new(), target }
     }
 }
 

@@ -11,7 +11,6 @@ use crate::target::VelloTarget;
 // Vello [`SceneFragment`]s are stitched together into a Vello [`Scene`](vello::Scene)
 #[derive(Component)]
 pub struct VelloFragment {
-    pub scene_id: u64,
     pub scene_fragment: SceneFragment,
     pub transform: Affine,
 }
