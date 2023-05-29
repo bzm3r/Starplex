@@ -1,43 +1,52 @@
-use bevy::asset::Handle;
 use bevy::ecs::component::Component;
+use bevy::ecs::query::WorldQuery;
 use bevy::render::extract_component::ExtractComponent;
-use bevy::render::texture::Image;
 
-use vello::{Scene, SceneBuilder};
+use vello::{kurbo::Affine, Scene, SceneBuilder, SceneFragment};
 
-use crate::{fragment::{VelloFragmentQuery, VelloFragment}, target::VelloTarget};
+use crate::{fragment::VelloFragment, target::VelloTarget};
 
 // Vello `Scene`s contain the `Encoding` that will be sent to and rendered by the GPU
 #[derive(Component)]
 pub struct VelloScene {
-    scene: Scene,
-    fragments: Vec<VelloFragment>,
-    target: VelloTarget,
+    pub scene: Scene,
+    pub target: VelloTarget,
 }
 
-pub struct RenderScene()
-
 impl VelloScene {
-    pub fn new(target: Handle<Image>) -> Self {
-        Self { scene: Scene::default(), fragments: Vec::new(), target }
+    pub fn from_fragment(
+        scene_frag: &SceneFragment,
+        transform: Option<Affine>,
+        target: VelloTarget,
+    ) -> Self {
+        let mut scene = Scene::default();
+
+        let mut builder = SceneBuilder::for_scene(&mut scene);
+        builder.append(scene_frag, transform);
+
+        Self { scene, target }
     }
+}
+
+#[derive(WorldQuery)]
+pub struct VelloSceneCreationQuery {
+    pub fragment: &'static VelloFragment,
+    pub target: &'static VelloTarget,
 }
 
 // Extracts a VelloScene for Rendering to the GPU
 impl ExtractComponent for VelloScene {
-    type Query = VelloFragmentQuery;
+    type Query = VelloSceneCreationQuery;
 
     type Filter = ();
 
     type Out = Self;
 
     fn extract_component(frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>) -> Option<Self> {
-        let mut scene = Scene::default();
-        let mut builder = SceneBuilder::for_scene(&mut scene);
-        builder.append(
+        Some(VelloScene::from_fragment(
             &frag_query.fragment.scene_fragment,
-            Some(frag_query.fragment.transform),
-        );
-        Some(Self(scene, frag_query.target.clone_handle()))
+            frag_query.fragment.transform,
+            frag_query.target.clone(),
+        ))
     }
 }

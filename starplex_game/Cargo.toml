@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy", rev = "4d54ce14aaee8d7432380df37c41c03c28594b27" }
+starplex_lib = { path = "../starplex_lib" }
+vevy_bello = { path = "../vevy_bello" }
 vello = { git = "https://github.com/linebender/vello" }
-starplex_lib = { path = "../starplex_lib", version = "0.1.0" }

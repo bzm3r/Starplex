@@ -1,35 +1,18 @@
 pub mod fragment;
+pub mod renderer;
 pub mod scene;
 pub mod target;
 
 use bevy::prelude::*;
+use bevy::render::extract_component::ExtractComponentPlugin;
 use bevy::render::{
-    extract_component::ExtractComponent, render_asset::RenderAssets, renderer::RenderDevice,
-    renderer::RenderQueue, Render, RenderApp, RenderSet,
+    render_asset::RenderAssets, renderer::RenderDevice, renderer::RenderQueue, Render, RenderApp,
+    RenderSet,
 };
-use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
+use renderer::VelloRenderer;
+use scene::VelloScene;
 
 pub struct VelloPlugin;
-
-
-
-#[derive(Resource)]
-pub struct VelloRenderer(Renderer);
-
-impl FromWorld for VelloRenderer {
-    fn from_world(world: &mut World) -> Self {
-        let device = world.get_resource::<RenderDevice>().unwrap();
-        VelloRenderer(
-            Renderer::new(
-                device.wgpu_device(),
-                &RendererOptions {
-                    surface_format: None,
-                },
-            )
-            .unwrap(),
-        )
-    }
-}
 
 fn render_scenes(
     mut renderer: ResMut<VelloRenderer>,
@@ -39,7 +22,7 @@ fn render_scenes(
     queue: Res<RenderQueue>,
 ) {
     for scene in &mut scenes {
-        let gpu_image = gpu_images.get(&scene.1).unwrap();
+        let gpu_image = gpu_images.get(scene.target.get_handle_ref()).unwrap();
         let params = vello::RenderParams {
             base_color: vello::peniko::Color::AQUAMARINE,
             width: gpu_image.size.x as u32,
@@ -50,7 +33,7 @@ fn render_scenes(
             .render_to_texture(
                 device.wgpu_device(),
                 &queue,
-                &scene.0,
+                &scene.scene,
                 &gpu_image.texture_view,
                 &params,
             )
@@ -60,6 +43,8 @@ fn render_scenes(
 
 impl Plugin for VelloPlugin {
     fn build(&self, app: &mut App) {
+        app.add_plugin(ExtractComponentPlugin::<VelloScene>::default());
+
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
         render_app.init_resource::<VelloRenderer>();
         // This should probably use the render graph, but working out the dependencies there is awkward

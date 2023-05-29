@@ -1,22 +1,17 @@
-use bevy::asset::Handle;
 use bevy::ecs::component::Component;
-use bevy::ecs::query::{ReadOnlyWorldQuery, WorldQuery};
-use bevy::render::texture::Image;
 
 use vello::peniko::kurbo::Affine;
 use vello::{SceneBuilder, SceneFragment};
 
-use crate::target::VelloTarget;
-
 // Vello [`SceneFragment`]s are stitched together into a Vello [`Scene`](vello::Scene)
-#[derive(Component)]
+#[derive(Component, Default)]
 pub struct VelloFragment {
     pub scene_fragment: SceneFragment,
-    pub transform: Affine,
+    pub transform: Option<Affine>,
 }
 
-#[derive(WorldQuery)]
-pub struct VelloFragmentQuery {
-    pub fragment: &'static VelloFragment,
-    pub target: &'static VelloTarget,
+impl VelloFragment {
+    pub fn scene_builder(&mut self) -> SceneBuilder {
+        SceneBuilder::for_fragment(&mut self.scene_fragment)
+    }
 }
