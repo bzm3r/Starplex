@@ -42,7 +42,9 @@ impl ExtractComponent for VelloScene {
 
     type Out = Self;
 
-    fn extract_component(frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>) -> Option<Self> {
+    fn extract_component(
+        frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>, //(fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
+    ) -> Option<Self> {
         Some(VelloScene::from_fragment(
             &frag_query.fragment.scene_fragment,
             frag_query.fragment.transform,

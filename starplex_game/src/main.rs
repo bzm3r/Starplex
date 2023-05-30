@@ -1,15 +1,16 @@
-use bevy::app::{App, Startup, Update};
-use bevy::prelude::*;
-use bevy::render::render_resource::{
-    Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+use vello::kurbo::{Affine, Point, Rect};
+use vello::peniko::{Color, Fill, Gradient, Stroke};
+use vello::SceneBuilder;
+
+use bevy::{
+    prelude::*,
+    render::render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    },
 };
-use bevy::DefaultPlugins;
 
-use vello::kurbo::{self, Affine, Point};
-use vello::{peniko, SceneBuilder};
-
-use vello::peniko::{Fill, Gradient, Stroke};
 use vevy_bello::fragment::VelloFragment;
+use vevy_bello::target::VelloTarget;
 use vevy_bello::VelloPlugin;
 
 fn main() {
@@ -17,9 +18,8 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugin(VelloPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, render_fragment)
-        .add_systems(Update, cube_rotator_system)
         .add_systems(Update, bevy::window::close_on_esc)
+        .add_systems(Update, render_fragment)
         .run()
 }
 
@@ -73,7 +73,7 @@ fn setup(
 
     // This material has the texture that has been rendered.
     let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(image_handle),
+        base_color_texture: Some(image_handle.clone()),
         reflectance: 0.02,
         unlit: false,
         ..default()
@@ -96,50 +96,40 @@ fn setup(
         transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
-    commands.spawn(VelloFragment::default());
+    commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
 }
 
-/// Rotates the outer cube (main pass)
-fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
-    for mut transform in &mut query {
-        transform.rotate_x(1.0 * time.delta_seconds());
-        transform.rotate_y(0.7 * time.delta_seconds());
-    }
-}
-
-fn render_fragment(mut fragment_q: Query<&mut VelloFragment>, mut frame: Local<usize>) {
-    let mut fragment = fragment_q.single_mut();
+fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
+    let mut fragment = fragment.single_mut();
     let mut builder = fragment.scene_builder();
     render_brush_transform(&mut builder, *frame);
+    let th = (std::f64::consts::PI / 180.0) * (*frame as f64);
+    fragment.transform = Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0)));
     *frame += 1;
 }
 
-fn render_brush_transform(sb: &mut SceneBuilder, i: usize) {
-    let th = (std::f64::consts::PI / 180.0) * (i as f64);
+fn render_brush_transform(sb: &mut SceneBuilder, _i: usize) {
     let linear = Gradient::new_linear((0.0, 0.0), (0.0, 200.0)).with_stops([
-        peniko::Color::RED,
-        peniko::Color::GREEN,
-        peniko::Color::BLUE,
+        Color::RED,
+        Color::GREEN,
+        Color::BLUE,
     ]);
     sb.fill(
         Fill::NonZero,
         Affine::translate((106.0, 106.0)),
         &linear,
-        Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0))),
-        &kurbo::Rect::from_origin_size(Point::default(), (300.0, 300.0)),
+        None, //Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0))),
+        &Rect::from_origin_size(Point::default(), (300.0, 300.0)),
     );
     sb.stroke(
         &Stroke::new(106.0),
         Affine::IDENTITY,
         &linear,
-        Some(around_center(
-            Affine::rotate(th + std::f64::consts::PI / 2.),
-            Point::new(176.5, 176.5),
-        )),
-        &kurbo::Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
+        None,
+        &Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
     );
 }
 
-fn around_center(xform: Affine, center: Point) -> Affine {
-    Affine::translate(center.to_vec2()) * xform * Affine::translate(-center.to_vec2())
+fn around_center(transform: Affine, center: Point) -> Affine {
+    Affine::translate(center.to_vec2()) * transform * Affine::translate(-center.to_vec2())
 }

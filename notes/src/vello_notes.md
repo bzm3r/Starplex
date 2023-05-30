@@ -4,7 +4,7 @@
 
 * Question about `SceneBuilder`'s `append`: currently, `SceneBuilder`'s `append` looks like:
 
-```
+```rust
 /// Appends a fragment to the scene.
     pub fn append(&mut self, fragment: &SceneFragment, transform: Option<Affine>) {
         self.scene.append(

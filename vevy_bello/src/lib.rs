@@ -14,7 +14,7 @@ use scene::VelloScene;
 
 pub struct VelloPlugin;
 
-fn render_scenes(
+pub fn render_scenes(
     mut renderer: ResMut<VelloRenderer>,
     mut scenes: Query<&VelloScene>,
     gpu_images: Res<RenderAssets<Image>>,
