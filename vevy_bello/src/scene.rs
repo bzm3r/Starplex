@@ -22,7 +22,7 @@ impl VelloScene {
         let mut scene = Scene::default();
 
         let mut builder = SceneBuilder::for_scene(&mut scene);
-        builder.append(scene_frag, None);
+        builder.append(scene_frag, transform);
 
         Self { scene, target }
     }

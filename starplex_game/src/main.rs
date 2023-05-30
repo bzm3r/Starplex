@@ -17,9 +17,6 @@ use bevy::{
 };
 
 use vevy_bello::fragment::VelloFragment;
-use vevy_bello::render_scenes;
-use vevy_bello::renderer::VelloRenderer;
-use vevy_bello::scene::VelloScene;
 use vevy_bello::target::VelloTarget;
 use vevy_bello::VelloPlugin;
 
