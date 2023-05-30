@@ -42,14 +42,8 @@ pub fn render_scenes(
 }
 
 impl Plugin for VelloPlugin {
-    //     fn build(&self, app: &mut App) {
-    //     let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
-    //     render_app.init_resource::<VelloRenderer>();
-    //     // This should probably use the render graph, but working out the dependencies there is awkward
-    //     render_app.add_systems(Render, render_scenes.in_set(RenderSet::Render));
-    // }
     fn build(&self, app: &mut App) {
-        // app.add_plugin(ExtractComponentPlugin::<VelloScene>::default());
+        app.add_plugin(ExtractComponentPlugin::<VelloScene>::default());
 
         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
         render_app.init_resource::<VelloRenderer>();

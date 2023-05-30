@@ -23,17 +23,6 @@ use vevy_bello::scene::VelloScene;
 use vevy_bello::target::VelloTarget;
 use vevy_bello::VelloPlugin;
 
-// struct VelloPlugin;
-
-// impl Plugin for VelloPlugin {
-//     fn build(&self, app: &mut App) {
-//         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
-//         render_app.init_resource::<VelloRenderer>();
-//         // This should probably use the render graph, but working out the dependencies there is awkward
-//         render_app.add_systems(Render, render_scenes.in_set(RenderSet::Render));
-//     }
-// }
-
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
@@ -41,7 +30,6 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(Update, cube_rotator_system)
-        .add_plugin(ExtractComponentPlugin::<VelloScene>::default())
         .add_systems(Update, render_fragment)
         .run()
 }
