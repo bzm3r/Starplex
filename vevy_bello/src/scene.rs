@@ -16,7 +16,7 @@ pub struct VelloScene {
 impl VelloScene {
     pub fn from_fragment(
         scene_frag: &SceneFragment,
-        // transform: Option<Affine>,
+        transform: Option<Affine>,
         target: VelloTarget,
     ) -> Self {
         let mut scene = Scene::default();
@@ -38,8 +38,6 @@ pub struct VelloSceneCreationQuery {
 impl ExtractComponent for VelloScene {
     type Query = VelloSceneCreationQuery;
 
-    // type Query = (&'static VelloFragment, &'static VelloTarget);
-
     type Filter = ();
 
     type Out = Self;
@@ -49,16 +47,8 @@ impl ExtractComponent for VelloScene {
     ) -> Option<Self> {
         Some(VelloScene::from_fragment(
             &frag_query.fragment.scene_fragment,
+            None,
             frag_query.target.clone(),
-            //target.clone(),
         ))
     }
-
-    // fn extract_component(frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>) -> Option<Self> {
-    //     Some(VelloScene::from_fragment(
-    //         &frag_query.fragment.scene_fragment,
-    //         // frag_query.fragment.transform,
-    //         frag_query.target.clone(),
-    //     ))
-    // }
 }
