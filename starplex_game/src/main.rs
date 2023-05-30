@@ -19,7 +19,6 @@ fn main() {
         .add_plugin(VelloPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, bevy::window::close_on_esc)
-        .add_systems(Update, cube_rotator_system)
         .add_systems(Update, render_fragment)
         .run()
 }
@@ -98,14 +97,6 @@ fn setup(
         ..default()
     });
     commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
-}
-
-/// Rotates the outer cube (main pass)
-fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<MainPassCube>>) {
-    for mut transform in &mut query {
-        transform.rotate_x(1.0 * time.delta_seconds());
-        transform.rotate_y(0.7 * time.delta_seconds());
-    }
 }
 
 fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
