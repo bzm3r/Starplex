@@ -1,31 +1,103 @@
-use bevy::app::{App, Startup, Update};
-use bevy::prelude::*;
-use bevy::render::render_resource::{
-    Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+use bevy::render::{Render, RenderSet};
+use vello::kurbo::{Affine, Point, Rect};
+use vello::peniko::{Color, Fill, Gradient, Stroke};
+use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
+
+use bevy::{
+    prelude::*,
+    render::{
+        extract_component::{ExtractComponent, ExtractComponentPlugin},
+        render_asset::RenderAssets,
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+        renderer::{RenderDevice, RenderQueue},
+        RenderApp,
+    },
 };
-use bevy::DefaultPlugins;
 
-use vello::kurbo::{self, Affine, Point};
-use vello::{peniko, SceneBuilder};
-
-use vello::peniko::{Fill, Gradient, Stroke};
 use vevy_bello::fragment::VelloFragment;
-use vevy_bello::VelloPlugin;
+use vevy_bello::renderer::VelloRenderer;
+use vevy_bello::scene::VelloScene;
+use vevy_bello::target::VelloTarget;
+
+struct VelloPlugin;
+
+impl Plugin for VelloPlugin {
+    fn build(&self, app: &mut App) {
+        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
+        render_app.init_resource::<VelloRenderer>();
+        // This should probably use the render graph, but working out the dependencies there is awkward
+        render_app.add_systems(Render, render_scenes.in_set(RenderSet::Render));
+    }
+}
+
+fn render_scenes(
+    mut renderer: ResMut<VelloRenderer>,
+    mut scenes: Query<&VelloScene>,
+    gpu_images: Res<RenderAssets<Image>>,
+    device: Res<RenderDevice>,
+    queue: Res<RenderQueue>,
+) {
+    for scene in &mut scenes {
+        let gpu_image = gpu_images.get(scene.target.get_handle_ref()).unwrap();
+        let params = vello::RenderParams {
+            base_color: vello::peniko::Color::AQUAMARINE,
+            width: gpu_image.size.x as u32,
+            height: gpu_image.size.y as u32,
+        };
+        renderer
+            .0
+            .render_to_texture(
+                device.wgpu_device(),
+                &queue,
+                &scene.scene,
+                &gpu_image.texture_view,
+                &params,
+            )
+            .unwrap();
+    }
+}
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(VelloPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, render_fragment)
-        .add_systems(Update, cube_rotator_system)
         .add_systems(Update, bevy::window::close_on_esc)
+        .add_systems(Update, cube_rotator_system)
+        .add_plugin(ExtractComponentPlugin::<VelloScene>::default())
+        .add_systems(Update, render_fragment)
         .run()
 }
 
 // Marks the main pass cube, to which the texture is applied.
 #[derive(Component)]
 struct MainPassCube;
+
+// #[derive(Component)]
+// // In the future, this will probably connect to the bevy heirarchy with an Affine component
+// pub struct VelloFragment(SceneFragment);
+
+// #[derive(Component)]
+// struct VelloScene(Scene, Handle<Image>);
+
+// impl ExtractComponent for VelloScene {
+//     type Query = (&'static VelloFragment, &'static VelloTarget);
+
+//     type Filter = ();
+
+//     type Out = Self;
+
+//     fn extract_component(
+//         (fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
+//     ) -> Option<Self> {
+//         let mut scene = Scene::default();
+//         let mut builder = SceneBuilder::for_scene(&mut scene);
+//         builder.append(&fragment.0, None);
+//         Some(Self(scene, target.clone_handle()))
+//     }
+// }
 
 fn setup(
     mut commands: Commands,
@@ -73,7 +145,7 @@ fn setup(
 
     // This material has the texture that has been rendered.
     let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(image_handle),
+        base_color_texture: Some(image_handle.clone()),
         reflectance: 0.02,
         unlit: false,
         ..default()
@@ -96,7 +168,11 @@ fn setup(
         transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
-    commands.spawn(VelloFragment::default());
+    commands.spawn((
+        //VelloFragment(SceneFragment::default()),
+        VelloFragment::default(),
+        VelloTarget::new(image_handle),
+    ));
 }
 
 /// Rotates the outer cube (main pass)
@@ -107,9 +183,9 @@ fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<Ma
     }
 }
 
-fn render_fragment(mut fragment_q: Query<&mut VelloFragment>, mut frame: Local<usize>) {
-    let mut fragment = fragment_q.single_mut();
-    let mut builder = fragment.scene_builder();
+fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
+    let mut fragment = fragment.single_mut();
+    let mut builder = SceneBuilder::for_fragment(&mut fragment.scene_fragment);
     render_brush_transform(&mut builder, *frame);
     *frame += 1;
 }
@@ -117,16 +193,16 @@ fn render_fragment(mut fragment_q: Query<&mut VelloFragment>, mut frame: Local<u
 fn render_brush_transform(sb: &mut SceneBuilder, i: usize) {
     let th = (std::f64::consts::PI / 180.0) * (i as f64);
     let linear = Gradient::new_linear((0.0, 0.0), (0.0, 200.0)).with_stops([
-        peniko::Color::RED,
-        peniko::Color::GREEN,
-        peniko::Color::BLUE,
+        Color::RED,
+        Color::GREEN,
+        Color::BLUE,
     ]);
     sb.fill(
         Fill::NonZero,
         Affine::translate((106.0, 106.0)),
         &linear,
         Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0))),
-        &kurbo::Rect::from_origin_size(Point::default(), (300.0, 300.0)),
+        &Rect::from_origin_size(Point::default(), (300.0, 300.0)),
     );
     sb.stroke(
         &Stroke::new(106.0),
@@ -136,10 +212,10 @@ fn render_brush_transform(sb: &mut SceneBuilder, i: usize) {
             Affine::rotate(th + std::f64::consts::PI / 2.),
             Point::new(176.5, 176.5),
         )),
-        &kurbo::Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
+        &Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
     );
 }
 
-fn around_center(xform: Affine, center: Point) -> Affine {
-    Affine::translate(center.to_vec2()) * xform * Affine::translate(-center.to_vec2())
+fn around_center(transform: Affine, center: Point) -> Affine {
+    Affine::translate(center.to_vec2()) * transform * Affine::translate(-center.to_vec2())
 }

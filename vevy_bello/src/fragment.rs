@@ -7,7 +7,7 @@ use vello::{SceneBuilder, SceneFragment};
 #[derive(Component, Default)]
 pub struct VelloFragment {
     pub scene_fragment: SceneFragment,
-    pub transform: Option<Affine>,
+    // pub transform: Option<Affine>,
 }
 
 impl VelloFragment {

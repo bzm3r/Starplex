@@ -16,13 +16,13 @@ pub struct VelloScene {
 impl VelloScene {
     pub fn from_fragment(
         scene_frag: &SceneFragment,
-        transform: Option<Affine>,
+        // transform: Option<Affine>,
         target: VelloTarget,
     ) -> Self {
         let mut scene = Scene::default();
 
         let mut builder = SceneBuilder::for_scene(&mut scene);
-        builder.append(scene_frag, transform);
+        builder.append(scene_frag, None);
 
         Self { scene, target }
     }
@@ -36,17 +36,29 @@ pub struct VelloSceneCreationQuery {
 
 // Extracts a VelloScene for Rendering to the GPU
 impl ExtractComponent for VelloScene {
-    type Query = VelloSceneCreationQuery;
+    // type Query = VelloSceneCreationQuery;
+
+    type Query = (&'static VelloFragment, &'static VelloTarget);
 
     type Filter = ();
 
     type Out = Self;
 
-    fn extract_component(frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>) -> Option<Self> {
+    fn extract_component(
+        (fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
+    ) -> Option<Self> {
         Some(VelloScene::from_fragment(
-            &frag_query.fragment.scene_fragment,
-            frag_query.fragment.transform,
-            frag_query.target.clone(),
+            &fragment.scene_fragment,
+            // frag_query.fragment.transform,
+            target.clone(),
         ))
     }
+
+    // fn extract_component(frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>) -> Option<Self> {
+    //     Some(VelloScene::from_fragment(
+    //         &frag_query.fragment.scene_fragment,
+    //         // frag_query.fragment.transform,
+    //         frag_query.target.clone(),
+    //     ))
+    // }
 }

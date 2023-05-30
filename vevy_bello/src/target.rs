@@ -6,6 +6,10 @@ use bevy::render::texture::Image;
 pub struct VelloTarget(Handle<Image>);
 
 impl VelloTarget {
+    pub fn new(image: Handle<Image>) -> Self {
+        VelloTarget(image)
+    }
+
     pub fn get_handle_ref(&self) -> &Handle<Image> {
         &self.0
     }
