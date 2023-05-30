@@ -47,7 +47,7 @@ impl ExtractComponent for VelloScene {
     ) -> Option<Self> {
         Some(VelloScene::from_fragment(
             &frag_query.fragment.scene_fragment,
-            None,
+            frag_query.fragment.transform,
             frag_query.target.clone(),
         ))
     }

@@ -102,13 +102,13 @@ fn setup(
 fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
     let mut fragment = fragment.single_mut();
     let mut builder = fragment.scene_builder();
-    //let mut builder = SceneBuilder::for_fragment(&mut fragment.scene_fragment);
     render_brush_transform(&mut builder, *frame);
+    let th = (std::f64::consts::PI / 180.0) * (*frame as f64);
+    fragment.transform = Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0)));
     *frame += 1;
 }
 
-fn render_brush_transform(sb: &mut SceneBuilder, i: usize) {
-    let th = (std::f64::consts::PI / 180.0) * (i as f64);
+fn render_brush_transform(sb: &mut SceneBuilder, _i: usize) {
     let linear = Gradient::new_linear((0.0, 0.0), (0.0, 200.0)).with_stops([
         Color::RED,
         Color::GREEN,
@@ -118,17 +118,14 @@ fn render_brush_transform(sb: &mut SceneBuilder, i: usize) {
         Fill::NonZero,
         Affine::translate((106.0, 106.0)),
         &linear,
-        Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0))),
+        None, //Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0))),
         &Rect::from_origin_size(Point::default(), (300.0, 300.0)),
     );
     sb.stroke(
         &Stroke::new(106.0),
         Affine::IDENTITY,
         &linear,
-        Some(around_center(
-            Affine::rotate(th + std::f64::consts::PI / 2.),
-            Point::new(176.5, 176.5),
-        )),
+        None,
         &Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
     );
 }
