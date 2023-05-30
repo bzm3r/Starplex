@@ -36,21 +36,21 @@ pub struct VelloSceneCreationQuery {
 
 // Extracts a VelloScene for Rendering to the GPU
 impl ExtractComponent for VelloScene {
-    // type Query = VelloSceneCreationQuery;
+    type Query = VelloSceneCreationQuery;
 
-    type Query = (&'static VelloFragment, &'static VelloTarget);
+    // type Query = (&'static VelloFragment, &'static VelloTarget);
 
     type Filter = ();
 
     type Out = Self;
 
     fn extract_component(
-        (fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
+        frag_query: bevy::ecs::query::QueryItem<'_, Self::Query>, //(fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
     ) -> Option<Self> {
         Some(VelloScene::from_fragment(
-            &fragment.scene_fragment,
-            // frag_query.fragment.transform,
-            target.clone(),
+            &frag_query.fragment.scene_fragment,
+            frag_query.target.clone(),
+            //target.clone(),
         ))
     }
 
