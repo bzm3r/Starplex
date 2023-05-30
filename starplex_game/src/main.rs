@@ -17,47 +17,22 @@ use bevy::{
 };
 
 use vevy_bello::fragment::VelloFragment;
+use vevy_bello::render_scenes;
 use vevy_bello::renderer::VelloRenderer;
 use vevy_bello::scene::VelloScene;
 use vevy_bello::target::VelloTarget;
+use vevy_bello::VelloPlugin;
 
-struct VelloPlugin;
+// struct VelloPlugin;
 
-impl Plugin for VelloPlugin {
-    fn build(&self, app: &mut App) {
-        let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
-        render_app.init_resource::<VelloRenderer>();
-        // This should probably use the render graph, but working out the dependencies there is awkward
-        render_app.add_systems(Render, render_scenes.in_set(RenderSet::Render));
-    }
-}
-
-fn render_scenes(
-    mut renderer: ResMut<VelloRenderer>,
-    mut scenes: Query<&VelloScene>,
-    gpu_images: Res<RenderAssets<Image>>,
-    device: Res<RenderDevice>,
-    queue: Res<RenderQueue>,
-) {
-    for scene in &mut scenes {
-        let gpu_image = gpu_images.get(scene.target.get_handle_ref()).unwrap();
-        let params = vello::RenderParams {
-            base_color: vello::peniko::Color::AQUAMARINE,
-            width: gpu_image.size.x as u32,
-            height: gpu_image.size.y as u32,
-        };
-        renderer
-            .0
-            .render_to_texture(
-                device.wgpu_device(),
-                &queue,
-                &scene.scene,
-                &gpu_image.texture_view,
-                &params,
-            )
-            .unwrap();
-    }
-}
+// impl Plugin for VelloPlugin {
+//     fn build(&self, app: &mut App) {
+//         let Ok(render_app) = app.get_sub_app_mut(RenderApp) else { return };
+//         render_app.init_resource::<VelloRenderer>();
+//         // This should probably use the render graph, but working out the dependencies there is awkward
+//         render_app.add_systems(Render, render_scenes.in_set(RenderSet::Render));
+//     }
+// }
 
 fn main() {
     App::new()
@@ -74,30 +49,6 @@ fn main() {
 // Marks the main pass cube, to which the texture is applied.
 #[derive(Component)]
 struct MainPassCube;
-
-// #[derive(Component)]
-// // In the future, this will probably connect to the bevy heirarchy with an Affine component
-// pub struct VelloFragment(SceneFragment);
-
-// #[derive(Component)]
-// struct VelloScene(Scene, Handle<Image>);
-
-// impl ExtractComponent for VelloScene {
-//     type Query = (&'static VelloFragment, &'static VelloTarget);
-
-//     type Filter = ();
-
-//     type Out = Self;
-
-//     fn extract_component(
-//         (fragment, target): bevy::ecs::query::QueryItem<'_, Self::Query>,
-//     ) -> Option<Self> {
-//         let mut scene = Scene::default();
-//         let mut builder = SceneBuilder::for_scene(&mut scene);
-//         builder.append(&fragment.0, None);
-//         Some(Self(scene, target.clone_handle()))
-//     }
-// }
 
 fn setup(
     mut commands: Commands,
