@@ -1,18 +1,11 @@
-use bevy::render::{Render, RenderSet};
 use vello::kurbo::{Affine, Point, Rect};
 use vello::peniko::{Color, Fill, Gradient, Stroke};
-use vello::{Renderer, RendererOptions, Scene, SceneBuilder, SceneFragment};
+use vello::SceneBuilder;
 
 use bevy::{
     prelude::*,
-    render::{
-        extract_component::{ExtractComponent, ExtractComponentPlugin},
-        render_asset::RenderAssets,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
-        renderer::{RenderDevice, RenderQueue},
-        RenderApp,
+    render::render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
 };
 
@@ -104,11 +97,7 @@ fn setup(
         transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
-    commands.spawn((
-        //VelloFragment(SceneFragment::default()),
-        VelloFragment::default(),
-        VelloTarget::new(image_handle),
-    ));
+    commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
 }
 
 /// Rotates the outer cube (main pass)
@@ -121,7 +110,8 @@ fn cube_rotator_system(time: Res<Time>, mut query: Query<&mut Transform, With<Ma
 
 fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
     let mut fragment = fragment.single_mut();
-    let mut builder = SceneBuilder::for_fragment(&mut fragment.scene_fragment);
+    let mut builder = fragment.scene_builder();
+    //let mut builder = SceneBuilder::for_fragment(&mut fragment.scene_fragment);
     render_brush_transform(&mut builder, *frame);
     *frame += 1;
 }
