@@ -1,5 +1,6 @@
 use bevy::ecs::component::Component;
 use bevy::ecs::query::WorldQuery;
+use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponent;
 
 use vello::{kurbo::Affine, Scene, SceneBuilder, SceneFragment};

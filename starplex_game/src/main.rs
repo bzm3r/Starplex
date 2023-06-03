@@ -10,6 +10,7 @@ use vello::{peniko, SceneBuilder};
 
 use vello::peniko::{Fill, Gradient, Stroke};
 use vevy_bello::fragment::VelloFragment;
+use vevy_bello::target::VelloTarget;
 use vevy_bello::VelloPlugin;
 
 fn main() {
@@ -73,7 +74,7 @@ fn setup(
 
     // This material has the texture that has been rendered.
     let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(image_handle),
+        base_color_texture: Some(image_handle.clone()),
         reflectance: 0.02,
         unlit: false,
         ..default()
@@ -96,7 +97,7 @@ fn setup(
         transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
-    commands.spawn(VelloFragment::default());
+    commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
 }
 
 /// Rotates the outer cube (main pass)
