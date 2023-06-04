@@ -16,7 +16,7 @@ use bevy::render::{
 };
 use std::sync::Mutex;
 
-use crate::target::{self, VelloTarget};
+use crate::target::VelloTarget;
 
 #[derive(Component)]
 pub struct BlitOutPipeline {

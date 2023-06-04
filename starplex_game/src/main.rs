@@ -25,10 +25,11 @@ fn main() {
         }))
         .add_plugin(VelloPlugin)
         .add_systems(PreStartup, maximize_window)
-        .add_systems(Startup, (setup_camera, setup_fragment))
+        .add_systems(Startup, (setup_camera, setup_fragment_and_target))
         .add_systems(Update, resize_vello_target)
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(Update, draw_to_fragment)
+        .add_systems(PreUpdate, find_vello_target)
         .run()
 }
 
@@ -49,7 +50,7 @@ fn setup_camera(mut commands: Commands) {
     });
 }
 
-fn setup_fragment(
+fn setup_fragment_and_target(
     mut commands: Commands,
     mut images: ResMut<Assets<Image>>,
     primary_window_q: Query<&Window, With<PrimaryWindow>>,
@@ -82,18 +83,12 @@ fn setup_fragment(
 
     let image_handle = images.add(image);
 
-    // The main pass camera.
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
     commands.spawn(VelloFragment::default());
-    // the target image the Vello scene will be rendered to
     commands.spawn(VelloTarget::new(image_handle));
 }
 
 fn resize_vello_target(
-    mut target_q: Query<&mut VelloTarget>,
+    target_q: Query<&mut VelloTarget>,
     mut resize_reader: EventReader<WindowResized>,
     mut images: ResMut<Assets<Image>>,
 ) {
@@ -106,6 +101,7 @@ fn resize_vello_target(
     // Resize image for post-processing material and re-spawn main camera.
     if let Some(event) = window_resized {
         if let Ok(vello_target) = target_q.get_single() {
+            info!("Resizing vello target!");
             if let Some(target_image) = images.get_mut(vello_target.handle()) {
                 // TODO: use physical dimensions.
                 let size = Extent3d {
@@ -153,4 +149,10 @@ fn draw_stuff(sb: &mut SceneBuilder, _i: usize) {
 
 fn around_center(transform: Affine, center: Point) -> Affine {
     Affine::translate(center.to_vec2()) * transform * Affine::translate(-center.to_vec2())
+}
+
+fn find_vello_target(target_q: Query<&VelloTarget>) {
+    for target in target_q.iter() {
+        info!("find_vello_target found a target!");
+    }
 }
