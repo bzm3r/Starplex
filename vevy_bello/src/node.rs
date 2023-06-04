@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use bevy::{
     prelude::*,
     render::{
@@ -15,7 +13,7 @@ use crate::{renderer::VelloRenderer, scene::VelloScene};
 pub struct VelloNode {
     // The node needs a query to gather data from the ECS in order to do its rendering,
     // but it's not a normal system so we need to define it manually.
-    scene_query: Mutex<QueryState<&'static VelloScene>>,
+    scene_query: QueryState<&'static VelloScene>,
 }
 
 impl VelloNode {
@@ -25,7 +23,7 @@ impl VelloNode {
 impl FromWorld for VelloNode {
     fn from_world(world: &mut World) -> Self {
         Self {
-            scene_query: Mutex::new(QueryState::new(world)),
+            scene_query: QueryState::new(world),
         }
     }
 }
@@ -37,9 +35,7 @@ impl Node for VelloNode {
         // Since this is not a system we need to update the query manually.
         // This is mostly boilerplate. There are plans to remove this in the future.
         // For now, you can just copy it.
-        if let Ok(mut scene_query) = self.scene_query.lock() {
-            scene_query.update_archetypes(world);
-        }
+        self.scene_query.update_archetypes(world);
     }
 
     // Runs the node logic
@@ -68,29 +64,21 @@ impl Node for VelloNode {
         let device = render_context.render_device();
         let queue = world.resource::<RenderQueue>();
 
-        if let Ok(mut scene_query) = self.scene_query.lock() {
-            for scene in scene_query.iter(world) {
-                let gpu_image = gpu_images.get(scene.target.get_handle_ref()).unwrap();
-                let params = vello::RenderParams {
-                    base_color: vello::peniko::Color::AQUAMARINE,
-                    width: gpu_image.size.x as u32,
-                    height: gpu_image.size.y as u32,
-                };
+        for scene in self.scene_query.iter_manual(world) {
+            let gpu_image = gpu_images.get(scene.target.get_handle_ref()).unwrap();
+            let params = vello::RenderParams {
+                base_color: vello::peniko::Color::AQUAMARINE,
+                width: gpu_image.size.x as u32,
+                height: gpu_image.size.y as u32,
+            };
 
-                let Ok(mut inner_renderer) = renderer.0.lock() else {
-                    continue;
-                };
-
-                inner_renderer
-                    .render_to_texture(
-                        device.wgpu_device(),
-                        queue,
-                        &scene.scene,
-                        &gpu_image.texture_view,
-                        &params,
-                    )
-                    .unwrap();
-            }
+            renderer.try_render_to_texture(
+                device.wgpu_device(),
+                queue,
+                &scene.scene,
+                &gpu_image.texture_view,
+                &params,
+            );
         }
 
         Ok(())
