@@ -10,28 +10,28 @@ use crate::{fragment::VelloFragment, target::VelloTarget};
 #[derive(Component)]
 pub struct VelloScene {
     pub scene: Scene,
-    pub target: VelloTarget,
+    // pub target: VelloTarget,
 }
 
 impl VelloScene {
     pub fn from_fragment(
         scene_frag: &SceneFragment,
         transform: Option<Affine>,
-        target: VelloTarget,
+        // target: VelloTarget,
     ) -> Self {
         let mut scene = Scene::default();
 
         let mut builder = SceneBuilder::for_scene(&mut scene);
         builder.append(scene_frag, transform);
 
-        Self { scene, target }
+        Self { scene } //target }
     }
 }
 
 #[derive(WorldQuery)]
 pub struct VelloSceneCreationQuery {
     pub fragment: &'static VelloFragment,
-    pub target: &'static VelloTarget,
+    // pub target: &'static VelloTarget,
 }
 
 // Extracts a VelloScene for Rendering to the GPU
@@ -48,7 +48,7 @@ impl ExtractComponent for VelloScene {
         Some(VelloScene::from_fragment(
             &frag_query.fragment.scene_fragment,
             frag_query.fragment.transform,
-            frag_query.target.clone(),
+            // frag_query.target.clone(),
         ))
     }
 }

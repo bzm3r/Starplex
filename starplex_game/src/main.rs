@@ -33,70 +33,71 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
 ) {
-    let size = Extent3d {
-        width: 512,
-        height: 512,
-        ..default()
-    };
+    // let size = Extent3d {
+    //     width: 512,
+    //     height: 512,
+    //     ..default()
+    // };
 
-    // This is the texture that will be rendered to.
-    let mut image = Image {
-        texture_descriptor: TextureDescriptor {
-            label: None,
-            size,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::Rgba8Unorm,
-            mip_level_count: 1,
-            sample_count: 1,
-            usage: TextureUsages::TEXTURE_BINDING
-                | TextureUsages::COPY_DST
-                | TextureUsages::STORAGE_BINDING,
-            view_formats: &[],
-        },
-        ..default()
-    };
+    // // This is the texture that will be rendered to.
+    // let mut image = Image {
+    //     texture_descriptor: TextureDescriptor {
+    //         label: None,
+    //         size,
+    //         dimension: TextureDimension::D2,
+    //         format: TextureFormat::Rgba8Unorm,
+    //         mip_level_count: 1,
+    //         sample_count: 1,
+    //         usage: TextureUsages::TEXTURE_BINDING
+    //             | TextureUsages::COPY_DST
+    //             | TextureUsages::STORAGE_BINDING,
+    //         view_formats: &[],
+    //     },
+    //     ..default()
+    // };
 
-    // fill image.data with zeroes
-    image.resize(size);
+    // // fill image.data with zeroes
+    // image.resize(size);
 
-    let image_handle = images.add(image);
+    // let image_handle = images.add(image);
 
-    // Light
-    // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
-    commands.spawn(PointLightBundle {
-        transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
-        ..default()
-    });
+    // // Light
+    // // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
+    // commands.spawn(PointLightBundle {
+    //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
+    //     ..default()
+    // });
 
-    let cube_size = 4.0;
-    let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
+    // let cube_size = 4.0;
+    // let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
 
     // This material has the texture that has been rendered.
-    let material_handle = materials.add(StandardMaterial {
-        base_color_texture: Some(image_handle.clone()),
-        reflectance: 0.02,
-        unlit: false,
-        ..default()
-    });
+    // let material_handle = materials.add(StandardMaterial {
+    //     base_color_texture: Some(image_handle.clone()),
+    //     reflectance: 0.02,
+    //     unlit: false,
+    //     ..default()
+    // });
 
     // Main pass cube, with material containing the rendered first pass texture.
-    commands.spawn((
-        PbrBundle {
-            mesh: cube_handle,
-            material: material_handle,
-            transform: Transform::from_xyz(0.0, 0.0, 1.5)
-                .with_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 5.0)),
-            ..default()
-        },
-        MainPassCube,
-    ));
+    // commands.spawn((
+    //     PbrBundle {
+    //         mesh: cube_handle,
+    //         material: material_handle,
+    //         transform: Transform::from_xyz(0.0, 0.0, 1.5)
+    //             .with_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 5.0)),
+    //         ..default()
+    //     },
+    //     MainPassCube,
+    // ));
 
     // The main pass camera.
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
-    commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
+    // commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
+    commands.spawn(VelloFragment::default());
 }
 
 fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
@@ -104,7 +105,7 @@ fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usi
     let mut builder = fragment.scene_builder();
     render_brush_transform(&mut builder, *frame);
     let th = (std::f64::consts::PI / 180.0) * (*frame as f64);
-    fragment.transform = Some(around_center(Affine::rotate(th), Point::new(150.0, 150.0)));
+    fragment.transform = Some(around_center(Affine::rotate(th), Point::default()));
     *frame += 1;
 }
 
@@ -126,7 +127,7 @@ fn render_brush_transform(sb: &mut SceneBuilder, _i: usize) {
         Affine::IDENTITY,
         &linear,
         None,
-        &Rect::from_origin_size(Point::new(53.0, 53.0), (406.0, 406.0)),
+        &Rect::from_origin_size(Point::default(), (406.0, 406.0)),
     );
 }
 
