@@ -1,5 +1,6 @@
+pub mod blit;
+pub mod draw;
 pub mod fragment;
-pub mod node;
 pub mod renderer;
 pub mod scene;
 pub mod target;
@@ -7,9 +8,10 @@ pub mod target;
 use bevy::core_pipeline::core_3d;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
-use bevy::render::render_graph::RenderGraphApp;
-use bevy::render::RenderApp;
-use node::VelloNode;
+use bevy::render::render_graph::{RenderGraphApp, ViewNodeRunner};
+use bevy::render::{RenderApp, Render, RenderSet};
+use blit::{BlitOutNode, queue_blit_out_pipelines};
+use draw::VelloDrawNode;
 use renderer::VelloRenderer;
 use scene::VelloScene;
 
@@ -42,23 +44,30 @@ impl Plugin for VelloPlugin {
         // you need to extract it manually or with the plugin like above.
         // Add a [`Node`] to the [`RenderGraph`]
         // The Node needs to impl FromWorld
-        render_app
-            .add_render_graph_node::<VelloNode>(
-                // Specifiy the name of the graph, in this case we want the graph for 3d
-                core_3d::graph::NAME,
-                // It also needs the name of the node
-                VelloNode::NAME,
-            )
-            .add_render_graph_edges(
-                core_3d::graph::NAME,
-                // Specify the node ordering.
-                // This will automatically create all required node edges to enforce the given ordering.
-                &[
-                    core_3d::graph::node::TONEMAPPING,
-                    VelloNode::NAME,
-                    core_3d::graph::node::END_MAIN_PASS_POST_PROCESSING,
-                ],
-            );
+        render_app.add_render_graph_node::<VelloDrawNode>(
+            // Specifiy the name of the graph, in this case we want the graph for 3d
+            core_3d::graph::NAME,
+            // It also needs the name of the node
+            VelloDrawNode::NAME,
+        );
+
+        render_app.add_render_graph_node::<ViewNodeRunner<BlitOutNode>>(
+            core_3d::graph::NAME,
+            BlitOutNode::NAME,
+        );
+
+        render_app.add_render_graph_edges(
+            core_3d::graph::NAME,
+            // Specify the node ordering.
+            // This will automatically create all required node edges to enforce the given ordering.
+            &[
+                core_3d::graph::node::UPSCALING,
+                VelloDrawNode::NAME,
+                BlitOutNode::NAME,
+            ],
+        );
+
+        render_app.add_systems(Render, queue_blit_out_pipelines.in_set(RenderSet::Queue));
     }
 
     fn finish(&self, app: &mut App) {

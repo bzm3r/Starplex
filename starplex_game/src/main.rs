@@ -1,3 +1,4 @@
+use bevy::window::{PrimaryWindow, WindowResized};
 use vello::kurbo::{Affine, Point, Rect};
 use vello::peniko::{Color, Fill, Gradient, Stroke};
 use vello::SceneBuilder;
@@ -15,11 +16,20 @@ use vevy_bello::VelloPlugin;
 
 fn main() {
     App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Starplex".into(),
+                ..default()
+            }),
+            ..default()
+        }))
         .add_plugins(DefaultPlugins)
         .add_plugin(VelloPlugin)
-        .add_systems(Startup, setup)
+        .add_systems(PreStartup, maximize_window)
+        .add_systems(Startup, (setup_camera, setup_fragment))
+        .add_systems(Update, resize_vello_target)
         .add_systems(Update, bevy::window::close_on_esc)
-        .add_systems(Update, render_fragment)
+        .add_systems(Update, draw_to_fragment)
         .run()
 }
 
@@ -27,89 +37,100 @@ fn main() {
 #[derive(Component)]
 struct MainPassCube;
 
-fn setup(
+fn maximize_window(mut primary_window_q: Query<&mut Window, With<PrimaryWindow>>) {
+    let mut primary_window = primary_window_q.single_mut();
+    primary_window.set_maximized(true);
+}
+
+fn setup_camera(mut commands: Commands) {
+    // The main pass camera.
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+        ..default()
+    });
+}
+
+fn setup_fragment(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut images: ResMut<Assets<Image>>,
+    primary_window_q: Query<&Window, With<PrimaryWindow>>,
 ) {
-    // let size = Extent3d {
-    //     width: 512,
-    //     height: 512,
-    //     ..default()
-    // };
+    let primary_window = primary_window_q.single();
 
-    // // This is the texture that will be rendered to.
-    // let mut image = Image {
-    //     texture_descriptor: TextureDescriptor {
-    //         label: None,
-    //         size,
-    //         dimension: TextureDimension::D2,
-    //         format: TextureFormat::Rgba8Unorm,
-    //         mip_level_count: 1,
-    //         sample_count: 1,
-    //         usage: TextureUsages::TEXTURE_BINDING
-    //             | TextureUsages::COPY_DST
-    //             | TextureUsages::STORAGE_BINDING,
-    //         view_formats: &[],
-    //     },
-    //     ..default()
-    // };
+    let size = Extent3d {
+        width: primary_window.physical_width(),
+        height: primary_window.physical_height(),
+        ..default()
+    };
 
-    // // fill image.data with zeroes
-    // image.resize(size);
+    // This is the image that the fragment will render to.
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: None,
+            size,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Rgba8Unorm,
+            mip_level_count: 1,
+            sample_count: 1,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST
+                | TextureUsages::STORAGE_BINDING,
+            view_formats: &[],
+        },
+        ..default()
+    };
+    image.resize(size);
 
-    // let image_handle = images.add(image);
-
-    // // Light
-    // // NOTE: Currently lights are shared between passes - see https://github.com/bevyengine/bevy/issues/3462
-    // commands.spawn(PointLightBundle {
-    //     transform: Transform::from_translation(Vec3::new(0.0, 0.0, 10.0)),
-    //     ..default()
-    // });
-
-    // let cube_size = 4.0;
-    // let cube_handle = meshes.add(Mesh::from(shape::Box::new(cube_size, cube_size, cube_size)));
-
-    // This material has the texture that has been rendered.
-    // let material_handle = materials.add(StandardMaterial {
-    //     base_color_texture: Some(image_handle.clone()),
-    //     reflectance: 0.02,
-    //     unlit: false,
-    //     ..default()
-    // });
-
-    // Main pass cube, with material containing the rendered first pass texture.
-    // commands.spawn((
-    //     PbrBundle {
-    //         mesh: cube_handle,
-    //         material: material_handle,
-    //         transform: Transform::from_xyz(0.0, 0.0, 1.5)
-    //             .with_rotation(Quat::from_rotation_x(-std::f32::consts::PI / 5.0)),
-    //         ..default()
-    //     },
-    //     MainPassCube,
-    // ));
+    let image_handle = images.add(image);
 
     // The main pass camera.
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
-    // commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
     commands.spawn(VelloFragment::default());
+    // the target image the Vello scene will be rendered to
+    commands.spawn(VelloTarget::new(image_handle));
 }
 
-fn render_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
+fn resize_vello_target(
+    mut target_q: Query<&mut VelloTarget>,
+    mut resize_reader: EventReader<WindowResized>,
+    mut images: ResMut<Assets<Image>>,
+) {
+    // Take the last resize event.
+    let mut window_resized = None;
+    for event in resize_reader.iter() {
+        window_resized = Some(event);
+    }
+
+    // Resize image for post-processing material and re-spawn main camera.
+    if let Some(event) = window_resized {
+        if let Ok(vello_target) = target_q.get_single() {
+            if let Some(target_image) = images.get_mut(vello_target.handle()) {
+                // TODO: use physical dimensions.
+                let size = Extent3d {
+                    width: event.width as u32,
+                    height: event.height as u32,
+                    ..default()
+                };
+                target_image.texture_descriptor.size = size;
+                target_image.resize(target_image.texture_descriptor.size);
+            }
+        }
+    }
+}
+
+fn draw_to_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
     let mut fragment = fragment.single_mut();
     let mut builder = fragment.scene_builder();
-    render_brush_transform(&mut builder, *frame);
+    draw_stuff(&mut builder, *frame);
     let th = (std::f64::consts::PI / 180.0) * (*frame as f64);
     fragment.transform = Some(around_center(Affine::rotate(th), Point::default()));
     *frame += 1;
 }
 
-fn render_brush_transform(sb: &mut SceneBuilder, _i: usize) {
+fn draw_stuff(sb: &mut SceneBuilder, _i: usize) {
     let linear = Gradient::new_linear((0.0, 0.0), (0.0, 200.0)).with_stops([
         Color::RED,
         Color::GREEN,
