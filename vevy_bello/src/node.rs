@@ -39,6 +39,7 @@ impl Node for VelloNode {
         // This is mostly boilerplate. There are plans to remove this in the future.
         // For now, you can just copy it.
         self.scene_query.update_archetypes(world);
+        self.view_query.update_archetypes(world);
     }
 
     // Runs the node logic
@@ -58,11 +59,13 @@ impl Node for VelloNode {
         // We get the data we need from the world based on the view entity passed to the node.
         // The data is the query that was defined earlier in the [`PostProcessNode`]
         let Ok(view_target) = self.view_query.get_manual(world, view_entity) else {
+            error!("Could not find a view target!");
             return Ok(());
         };
 
         let main_texture_size = view_target.main_texture().size();
         let main_texture_view = view_target.main_texture_view();
+        info!("{:?}", view_target.main_texture().format());
 
         // // Get the GPU images
         // let gpu_images = world.resource::<RenderAssets<Image>>();
@@ -73,6 +76,7 @@ impl Node for VelloNode {
         let queue = world.resource::<RenderQueue>();
 
         for scene in self.scene_query.iter_manual(world) {
+            info!("Found a VelloScene to render!");
             // let gpu_image = gpu_images.get(scene.target.get_handle_ref()).unwrap();
             let params = vello::RenderParams {
                 base_color: vello::peniko::Color::AQUAMARINE,

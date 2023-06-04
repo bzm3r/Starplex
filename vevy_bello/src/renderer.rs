@@ -5,7 +5,7 @@ use bevy::{
     render::renderer::{RenderDevice, RenderQueue},
 };
 use vello::{RenderParams, Renderer, RendererOptions, Scene};
-use wgpu::{Device, Queue, TextureView};
+use wgpu::{Device, Queue, TextureFormat, TextureView};
 
 /// Wraps a Vello [`Renderer`](vello::Renderer) for use as a Bevy [`Resource`](bevy::prelude::Resource).
 ///
@@ -37,6 +37,9 @@ impl VelloRenderer {
     }
 }
 impl FromWorld for VelloRenderer {
+    /// Creates a new [`VelloRenderer`].
+    ///
+    /// Panics if the call to [`Renderer::new`](vello::Renderer::new) fails.
     fn from_world(world: &mut World) -> Self {
         let device = world.get_resource::<RenderDevice>().unwrap();
         let queue = world.get_resource::<RenderQueue>().unwrap();
@@ -45,7 +48,7 @@ impl FromWorld for VelloRenderer {
             Renderer::new(
                 device.wgpu_device(),
                 &RendererOptions {
-                    surface_format: None,
+                    surface_format: Some(TextureFormat::Rgba8UnormSrgb),
                     timestamp_period: queue.0.get_timestamp_period(),
                 },
             )
