@@ -23,7 +23,6 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(DefaultPlugins)
         .add_plugin(VelloPlugin)
         .add_systems(PreStartup, maximize_window)
         .add_systems(Startup, (setup_camera, setup_fragment))
