@@ -60,7 +60,7 @@ impl Node for VelloDrawNode {
 
         for scene in self.scene_query.iter_manual(world) {
             info!("Found a VelloScene to render!");
-            let target_gpu_image = gpu_images.get(scene.target.handle()).unwrap();
+            let target_gpu_image = gpu_images.get(&scene.target.handle).unwrap();
             let params = vello::RenderParams {
                 base_color: vello::peniko::Color::AQUAMARINE,
                 width: target_gpu_image.size.x as u32,

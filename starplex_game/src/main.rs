@@ -115,12 +115,15 @@ fn resize_vello_target(
     }
 }
 
-fn draw_to_fragment(mut fragment: Query<&mut VelloFragment>, mut frame: Local<usize>) {
-    let mut fragment = fragment.single_mut();
+fn draw_to_fragment(
+    mut fragment: Query<(&mut VelloFragment, &VelloTarget)>,
+    mut frame: Local<usize>,
+) {
+    let (mut fragment, target) = fragment.single_mut();
     let mut builder = fragment.scene_builder();
     draw_stuff(&mut builder, *frame);
     let th = (std::f64::consts::PI / 180.0) * (*frame as f64);
-    fragment.transform = Some(around_center(Affine::rotate(th), Point::default()));
+    fragment.transform = Some(around_center(Affine::rotate(th), Point::new(target.handle().)));
     *frame += 1;
 }
 

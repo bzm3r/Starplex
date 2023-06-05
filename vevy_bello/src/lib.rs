@@ -51,10 +51,7 @@ impl Plugin for VelloPlugin {
             VelloDrawNode::NAME,
         );
 
-        render_app.add_render_graph_node::<ViewNodeRunner<BlitOutNode>>(
-            core_3d::graph::NAME,
-            BlitOutNode::NAME,
-        );
+        render_app.add_render_graph_node::<BlitOutNode>(core_3d::graph::NAME, BlitOutNode::NAME);
 
         render_app.add_render_graph_edges(
             core_3d::graph::NAME,

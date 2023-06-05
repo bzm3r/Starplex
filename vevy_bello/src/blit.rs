@@ -1,11 +1,10 @@
 use bevy::core_pipeline::blit::{BlitPipeline, BlitPipelineKey};
-use bevy::ecs::{prelude::*, query::QueryItem};
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_resource::{CachedRenderPipelineId, SpecializedRenderPipelines};
 use bevy::render::{
     camera::{CameraOutputMode, ExtractedCamera},
-    render_graph::{NodeRunError, RenderGraphContext, ViewNode},
+    render_graph::{Node, NodeRunError, RenderGraphContext},
     render_resource::{
         BindGroup, BindGroupDescriptor, BindGroupEntry, BindingResource, LoadOp, Operations,
         PipelineCache, RenderPassColorAttachment, RenderPassDescriptor, SamplerDescriptor,
@@ -14,6 +13,7 @@ use bevy::render::{
     renderer::RenderContext,
     view::ViewTarget,
 };
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use crate::scene::VelloScene;
@@ -53,51 +53,75 @@ pub fn queue_blit_out_pipelines(
     }
 }
 
-#[derive(Default)]
 pub struct BlitOutNode {
-    cached_texture_bind_group: Mutex<Option<(TextureViewId, BindGroup)>>,
+    cached_texture_bind_groups: Mutex<HashMap<TextureViewId, BindGroup>>,
+    scene_query: QueryState<&'static VelloScene>,
+    view_query: QueryState<(&'static ViewTarget, &'static BlitOutPipeline)>,
 }
 
 impl BlitOutNode {
     pub const NAME: &str = "blit_out";
 }
 
-impl ViewNode for BlitOutNode {
-    type ViewQuery = (
-        &'static ViewTarget,
-        &'static VelloScene,
-        &'static BlitOutPipeline,
-    );
+impl FromWorld for BlitOutNode {
+    fn from_world(world: &mut World) -> Self {
+        Self {
+            cached_texture_bind_groups: Mutex::default(),
+            scene_query: QueryState::new(world),
+            view_query: QueryState::new(world),
+        }
+    }
+}
+
+impl Node for BlitOutNode {
+    // This will run every frame before the run() method
+    // The important difference is that `self` is `mut` here
+    fn update(&mut self, world: &mut World) {
+        // Since this is not a system we need to update the query manually.
+        // This is mostly boilerplate. There are plans to remove this in the future.
+        // For now, you can just copy it.
+        self.scene_query.update_archetypes(world);
+        self.view_query.update_archetypes(world);
+    }
 
     fn run(
         &self,
-        _graph: &mut RenderGraphContext,
+        graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (view_target, vello_scene, blit_out_pipeline): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         info!("blitting to output!");
+        let view_entity = graph.view_entity();
+
+        let Ok((view_target, blit_out_pipeline)) = self.view_query.get_manual(world, view_entity) else {
+            error!("did not find view target + blit out pipeline");
+            return Ok(());
+        };
+
         let pipeline_cache = world.get_resource::<PipelineCache>().unwrap();
         let blit_pipeline = world.get_resource::<BlitPipeline>().unwrap();
 
         let color_attachment_load_op = LoadOp::Clear(Default::default());
-        let mut cached_bind_group = self.cached_texture_bind_group.lock().unwrap();
+        let mut cached_bind_groups = self.cached_texture_bind_groups.lock().unwrap();
 
         // Get the GPU images
         let gpu_images = world.resource::<RenderAssets<Image>>();
-        let target_view = &gpu_images
-            .get(vello_scene.target.handle())
-            .unwrap()
-            .texture_view;
 
-        let bind_group = match &mut *cached_bind_group {
-            Some((id, bind_group)) if target_view.id() == *id => bind_group,
-            cached_bind_group => {
-                let sampler = render_context
-                    .render_device()
-                    .create_sampler(&SamplerDescriptor::default());
+        for (scene_count, vello_scene) in self.scene_query.iter_manual(world).enumerate() {
+            info!("blitter found a vello scene! (count: {})", scene_count);
 
-                let bind_group =
+            let target_view = &gpu_images
+                .get(vello_scene.target.handle())
+                .unwrap()
+                .texture_view;
+
+            let bind_group = cached_bind_groups
+                .entry(target_view.id())
+                .or_insert_with(|| {
+                    let sampler = render_context
+                        .render_device()
+                        .create_sampler(&SamplerDescriptor::default());
+
                     render_context
                         .render_device()
                         .create_bind_group(&BindGroupDescriptor {
@@ -113,38 +137,35 @@ impl ViewNode for BlitOutNode {
                                     resource: BindingResource::Sampler(&sampler),
                                 },
                             ],
-                        });
+                        })
+                });
 
-                let (_, bind_group) = cached_bind_group.insert((target_view.id(), bind_group));
-                bind_group
-            }
-        };
+            let pipeline = match pipeline_cache.get_render_pipeline(blit_out_pipeline.cached_id) {
+                Some(pipeline) => pipeline,
+                None => return Ok(()),
+            };
 
-        let pipeline = match pipeline_cache.get_render_pipeline(blit_out_pipeline.cached_id) {
-            Some(pipeline) => pipeline,
-            None => return Ok(()),
-        };
+            let pass_descriptor = RenderPassDescriptor {
+                label: Some("vello_output_blit_pass"),
+                color_attachments: &[Some(RenderPassColorAttachment {
+                    view: view_target.out_texture(),
+                    resolve_target: None,
+                    ops: Operations {
+                        load: color_attachment_load_op,
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            };
 
-        let pass_descriptor = RenderPassDescriptor {
-            label: Some("vello_output_blit_pass"),
-            color_attachments: &[Some(RenderPassColorAttachment {
-                view: view_target.out_texture(),
-                resolve_target: None,
-                ops: Operations {
-                    load: color_attachment_load_op,
-                    store: true,
-                },
-            })],
-            depth_stencil_attachment: None,
-        };
+            let mut render_pass = render_context
+                .command_encoder()
+                .begin_render_pass(&pass_descriptor);
 
-        let mut render_pass = render_context
-            .command_encoder()
-            .begin_render_pass(&pass_descriptor);
-
-        render_pass.set_pipeline(pipeline);
-        render_pass.set_bind_group(0, bind_group, &[]);
-        render_pass.draw(0..3, 0..1);
+            render_pass.set_pipeline(pipeline);
+            render_pass.set_bind_group(0, bind_group, &[]);
+            render_pass.draw(0..3, 0..1);
+        }
 
         Ok(())
     }

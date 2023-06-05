@@ -8,18 +8,17 @@ use bevy::render::texture::Image;
 /// It is a wrapper around a [`Handle`](bevy::asset::Handle) for an [`Image`](bevy::asset::Image)
 /// so that we can make it a [`Component`](bevy::ecs::component::Component).
 #[derive(Component, Clone)]
-pub struct VelloTarget(Handle<Image>);
+pub struct VelloTarget {
+    pub handle: Handle<Image>,
+    pub size: (f32, f32),
+}
 
 impl VelloTarget {
-    pub fn new(image: Handle<Image>) -> Self {
-        VelloTarget(image)
-    }
-
-    pub fn handle(&self) -> &Handle<Image> {
-        &self.0
+    pub fn new(image: Handle<Image>, size: (f32, f32)) -> Self {
+        VelloTarget { handle: image, size }
     }
 
     pub fn clone_handle(&self) -> Handle<Image> {
-        self.0.clone()
+        self.handle.clone()
     }
 }
