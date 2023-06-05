@@ -45,7 +45,7 @@ impl Node for VelloDrawNode {
     // you'll need to make sure you have a marker component to identify which camera(s) should run the effect.
     fn run(
         &self,
-        graph_context: &mut RenderGraphContext,
+        _graph_context: &mut RenderGraphContext,
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), NodeRunError> {
@@ -59,9 +59,8 @@ impl Node for VelloDrawNode {
         let queue = world.resource::<RenderQueue>();
 
         for scene in self.scene_query.iter_manual(world) {
-            
-        let target_gpu_image = gpu_images.get(scene.target.handle()).unwrap();
             info!("Found a VelloScene to render!");
+            let target_gpu_image = gpu_images.get(scene.target.handle()).unwrap();
             let params = vello::RenderParams {
                 base_color: vello::peniko::Color::AQUAMARINE,
                 width: target_gpu_image.size.x as u32,

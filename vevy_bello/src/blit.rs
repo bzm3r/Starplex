@@ -76,6 +76,7 @@ impl ViewNode for BlitOutNode {
         (view_target, vello_scene, blit_out_pipeline): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
+        info!("blitting to output!");
         let pipeline_cache = world.get_resource::<PipelineCache>().unwrap();
         let blit_pipeline = world.get_resource::<BlitPipeline>().unwrap();
 

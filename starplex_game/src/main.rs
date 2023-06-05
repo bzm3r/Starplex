@@ -83,8 +83,7 @@ fn setup_fragment_and_target(
 
     let image_handle = images.add(image);
 
-    commands.spawn(VelloFragment::default());
-    commands.spawn(VelloTarget::new(image_handle));
+    commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
 }
 
 fn resize_vello_target(
@@ -152,7 +151,7 @@ fn around_center(transform: Affine, center: Point) -> Affine {
 }
 
 fn find_vello_target(target_q: Query<&VelloTarget>) {
-    for target in target_q.iter() {
+    for _ in target_q.iter() {
         info!("find_vello_target found a target!");
     }
 }
