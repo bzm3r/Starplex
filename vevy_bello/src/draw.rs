@@ -7,14 +7,13 @@ use bevy::{
     },
 };
 
-use crate::{renderer::VelloRenderer, scene::VelloScene, target::VelloTarget};
+use crate::{renderer::VelloRenderer, scene::VelloScene};
 
 /// The post process node used for the render graph
 pub struct VelloDrawNode {
     // The node needs a query to gather data from the ECS in order to do its rendering,
     // but it's not a normal system so we need to define it manually.
     scene_query: QueryState<&'static VelloScene>,
-    target_query: QueryState<&'static VelloTarget>,
 }
 
 impl VelloDrawNode {
@@ -25,7 +24,6 @@ impl FromWorld for VelloDrawNode {
     fn from_world(world: &mut World) -> Self {
         Self {
             scene_query: QueryState::new(world),
-            target_query: QueryState::new(world),
         }
     }
 }
@@ -38,7 +36,6 @@ impl Node for VelloDrawNode {
         // This is mostly boilerplate. There are plans to remove this in the future.
         // For now, you can just copy it.
         self.scene_query.update_archetypes(world);
-        self.target_query.update_archetypes(world);
     }
 
     // Runs the node logic
@@ -52,19 +49,8 @@ impl Node for VelloDrawNode {
         render_context: &mut RenderContext,
         world: &World,
     ) -> Result<(), NodeRunError> {
-        // Get the entity of the view for the render graph where this node is running
-        let view_entity = graph_context.view_entity();
-
-        // We get the data we need from the world based on the view entity passed to the node.
-        // The data is the query that was defined earlier in the [`PostProcessNode`]
-        let Ok(vello_target) = self.target_query.get_manual(world, view_entity) else {
-            error!("Could not find a target for vello renderer!");
-            return Ok(());
-        };
-
         // Get the GPU images
         let gpu_images = world.resource::<RenderAssets<Image>>();
-        let target_gpu_image = gpu_images.get(vello_target.handle()).unwrap();
 
         // Get the Vello renderer
         let renderer = world.resource::<VelloRenderer>();
@@ -73,6 +59,8 @@ impl Node for VelloDrawNode {
         let queue = world.resource::<RenderQueue>();
 
         for scene in self.scene_query.iter_manual(world) {
+            
+        let target_gpu_image = gpu_images.get(scene.target.handle()).unwrap();
             info!("Found a VelloScene to render!");
             let params = vello::RenderParams {
                 base_color: vello::peniko::Color::AQUAMARINE,

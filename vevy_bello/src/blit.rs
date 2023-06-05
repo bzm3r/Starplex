@@ -16,7 +16,7 @@ use bevy::render::{
 };
 use std::sync::Mutex;
 
-use crate::target::VelloTarget;
+use crate::scene::VelloScene;
 
 #[derive(Component)]
 pub struct BlitOutPipeline {
@@ -65,7 +65,7 @@ impl BlitOutNode {
 impl ViewNode for BlitOutNode {
     type ViewQuery = (
         &'static ViewTarget,
-        &'static VelloTarget,
+        &'static VelloScene,
         &'static BlitOutPipeline,
     );
 
@@ -73,7 +73,7 @@ impl ViewNode for BlitOutNode {
         &self,
         _graph: &mut RenderGraphContext,
         render_context: &mut RenderContext,
-        (view_target, vello_target, blit_out_pipeline): QueryItem<Self::ViewQuery>,
+        (view_target, vello_scene, blit_out_pipeline): QueryItem<Self::ViewQuery>,
         world: &World,
     ) -> Result<(), NodeRunError> {
         let pipeline_cache = world.get_resource::<PipelineCache>().unwrap();
@@ -84,7 +84,10 @@ impl ViewNode for BlitOutNode {
 
         // Get the GPU images
         let gpu_images = world.resource::<RenderAssets<Image>>();
-        let target_view = &gpu_images.get(vello_target.handle()).unwrap().texture_view;
+        let target_view = &gpu_images
+            .get(vello_scene.target.handle())
+            .unwrap()
+            .texture_view;
 
         let bind_group = match &mut *cached_bind_group {
             Some((id, bind_group)) if target_view.id() == *id => bind_group,
