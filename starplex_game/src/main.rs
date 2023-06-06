@@ -16,6 +16,7 @@ use vevy_bello::VelloPlugin;
 
 fn main() {
     App::new()
+        .init_resource::<CanvasSize>()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Starplex".into(),
@@ -26,7 +27,7 @@ fn main() {
         .add_plugin(VelloPlugin)
         .add_systems(PreStartup, maximize_window)
         .add_systems(Startup, (setup_camera, setup_fragment_and_target))
-        .add_systems(Update, resize_vello_target)
+        .add_systems(Update, update_target_size)
         .add_systems(Update, bevy::window::close_on_esc)
         .add_systems(Update, draw_to_fragment)
         .add_systems(PreUpdate, find_vello_target)
@@ -86,10 +87,28 @@ fn setup_fragment_and_target(
     commands.spawn((VelloFragment::default(), VelloTarget::new(image_handle)));
 }
 
-fn resize_vello_target(
+#[derive(Default, Resource)]
+struct CanvasSize {
+    x: f32,
+    y: f32,
+}
+
+impl CanvasSize {
+    fn update(&mut self, x: f32, y: f32) {
+        self.x = x;
+        self.y = y;
+    }
+
+    fn center(&self) -> Point {
+        Point::new(self.x as f64 / 2.0, self.y as f64 / 2.0)
+    }
+}
+
+fn update_target_size(
     target_q: Query<&mut VelloTarget>,
     mut resize_reader: EventReader<WindowResized>,
     mut images: ResMut<Assets<Image>>,
+    mut canvas_size: ResMut<CanvasSize>,
 ) {
     // Take the last resize event.
     let mut window_resized = None;
@@ -101,7 +120,7 @@ fn resize_vello_target(
     if let Some(event) = window_resized {
         if let Ok(vello_target) = target_q.get_single() {
             info!("Resizing vello target!");
-            if let Some(target_image) = images.get_mut(vello_target.handle()) {
+            if let Some(target_image) = images.get_mut(&vello_target.handle) {
                 // TODO: use physical dimensions.
                 let size = Extent3d {
                     width: event.width as u32,
@@ -110,20 +129,22 @@ fn resize_vello_target(
                 };
                 target_image.texture_descriptor.size = size;
                 target_image.resize(target_image.texture_descriptor.size);
+                canvas_size.update(event.width, event.height);
             }
         }
     }
 }
 
 fn draw_to_fragment(
-    mut fragment: Query<(&mut VelloFragment, &VelloTarget)>,
+    mut fragment: Query<&mut VelloFragment>,
     mut frame: Local<usize>,
+    canvas_size: Res<CanvasSize>,
 ) {
-    let (mut fragment, target) = fragment.single_mut();
+    let mut fragment = fragment.single_mut();
     let mut builder = fragment.scene_builder();
     draw_stuff(&mut builder, *frame);
     let th = (std::f64::consts::PI / 180.0) * (*frame as f64);
-    fragment.transform = Some(around_center(Affine::rotate(th), Point::new(target.handle().)));
+    fragment.transform = Some(around_center(Affine::rotate(th), canvas_size.center()));
     *frame += 1;
 }
 

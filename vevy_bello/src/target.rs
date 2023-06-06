@@ -10,12 +10,11 @@ use bevy::render::texture::Image;
 #[derive(Component, Clone)]
 pub struct VelloTarget {
     pub handle: Handle<Image>,
-    pub size: (f32, f32),
 }
 
 impl VelloTarget {
-    pub fn new(image: Handle<Image>, size: (f32, f32)) -> Self {
-        VelloTarget { handle: image, size }
+    pub fn new(image: Handle<Image>) -> Self {
+        VelloTarget { handle: image }
     }
 
     pub fn clone_handle(&self) -> Handle<Image> {

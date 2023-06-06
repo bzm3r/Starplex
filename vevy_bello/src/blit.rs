@@ -111,7 +111,7 @@ impl Node for BlitOutNode {
             info!("blitter found a vello scene! (count: {})", scene_count);
 
             let target_view = &gpu_images
-                .get(vello_scene.target.handle())
+                .get(&vello_scene.target.handle)
                 .unwrap()
                 .texture_view;
 
