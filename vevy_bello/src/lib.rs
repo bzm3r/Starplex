@@ -8,9 +8,9 @@ pub mod target;
 use bevy::core_pipeline::core_3d;
 use bevy::prelude::*;
 use bevy::render::extract_component::ExtractComponentPlugin;
-use bevy::render::render_graph::{RenderGraphApp, ViewNodeRunner};
-use bevy::render::{RenderApp, Render, RenderSet};
-use blit::{BlitOutNode, queue_blit_out_pipelines};
+use bevy::render::render_graph::RenderGraphApp;
+use bevy::render::{Render, RenderApp, RenderSet};
+use blit::{queue_blit_out_pipelines, BlitOutNode};
 use draw::VelloDrawNode;
 use renderer::VelloRenderer;
 use scene::VelloScene;
@@ -45,16 +45,13 @@ impl Plugin for VelloPlugin {
         // Add a [`Node`] to the [`RenderGraph`]
         // The Node needs to impl FromWorld
         render_app.add_render_graph_node::<VelloDrawNode>(
-            // Specifiy the name of the graph, in this case we want the graph for 3d
+            // Specify the name of the graph, in this case we want the graph for 3d
             core_3d::graph::NAME,
             // It also needs the name of the node
             VelloDrawNode::NAME,
         );
 
-        render_app.add_render_graph_node::<ViewNodeRunner<BlitOutNode>>(
-            core_3d::graph::NAME,
-            BlitOutNode::NAME,
-        );
+        render_app.add_render_graph_node::<BlitOutNode>(core_3d::graph::NAME, BlitOutNode::NAME);
 
         render_app.add_render_graph_edges(
             core_3d::graph::NAME,
