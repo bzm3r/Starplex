@@ -17,7 +17,7 @@ pub struct VelloDrawNode {
 }
 
 impl VelloDrawNode {
-    pub const NAME: &str = "vello_render";
+    pub const NAME: &str = "vello_draw";
 }
 
 impl FromWorld for VelloDrawNode {

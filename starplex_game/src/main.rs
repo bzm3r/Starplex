@@ -45,10 +45,7 @@ fn maximize_window(mut primary_window_q: Query<&mut Window, With<PrimaryWindow>>
 
 fn setup_camera(mut commands: Commands) {
     // The main pass camera.
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    commands.spawn(Camera2dBundle::default());
 }
 
 fn setup_fragment_and_target(
